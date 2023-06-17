@@ -25,13 +25,13 @@ import numpy as np
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--nlayers", help="Number of layers in DNN", type=int, default=2)
+parser.add_argument("--nlayers", help="Number of layers in DNN", type=int, default=3)
 
 parser.add_argument("--dataset", type=str, default='FR', 
                     help='Market under study. If it not one of the standard ones, the file name' +
                          'has to be provided, where the file has to be a csv file')
 
-parser.add_argument("--years_test", type=int, default=2, 
+parser.add_argument("--years_test", type=int, default=1, 
                     help='Number of years (a year is 364 days) in the test dataset. Used if ' +
                     ' begin_test_date and end_test_date are not provided.')
 
@@ -46,7 +46,7 @@ parser.add_argument("--new_recalibration", type=int, default=1,
                     help='Boolean that selects whether we start a new recalibration or we restart an' +
                          ' existing one')
 
-parser.add_argument("--calibration_window", type=int, default=4, 
+parser.add_argument("--calibration_window", type=int, default=2, 
                     help='Number of years used in the training dataset for recalibration')
 
 parser.add_argument("--experiment_id", type=int, default=1, 
@@ -78,7 +78,7 @@ begin_test_date = args.begin_test_date
 end_test_date = args.end_test_date
 
 path_datasets_folder = os.path.join('.', 'datasets')
-path_recalibration_folder = os.path.join('.', 'exp')
+path_forecast_folder = os.path.join('.', 'forecast')
 path_hyperparameter_folder = os.path.join('.', 'hyperparameters')
 
 # Defining train and testing data
@@ -90,9 +90,9 @@ print(df_test.index[0], df_test.index[-1])
 forecast_file_name = 'fc_nl' + str(nlayers) + '_dat' + str(dataset) + \
                    '_YT' + str(years_test) + '_SF' + str(shuffle_train) + \
                    '_DA' * data_augmentation + '_CW' + str(calibration_window) + \
-                   '_' + str(experiment_id) + '_W_RENEW.csv'
+                   '_' + str(experiment_id) + '.csv'
 
-forecast_file_path = os.path.join(path_recalibration_folder, forecast_file_name)
+forecast_file_path = os.path.join(path_forecast_folder, forecast_file_name)
 
 # Defining empty forecast array and the real values to be predicted in a more friendly format
 forecast = pd.DataFrame(index=df_test.index[::24], columns=['h' + str(k) for k in range(24)])
