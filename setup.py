@@ -8,20 +8,20 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='epftoolbox',
+    name='electricity-price-forecasting_day-ahead-DNN',
     version='1.0',
     description='An open-access benchmark and toolbox for electricity price forecasting',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/jeslago/epftoolbox',
-    author='Jesus Lago',
-    author_email='jesuslagogarcia@gmail.com',
+    url='https://github.com/dodofit/electricity-price-forecasting_day-ahead-DNN',
+    author='Dorian Fitton',
+    author_email='fittondorian@gmail.com',
     license='GNU AGPLv3',
     python_requires='>=3.6, <4',
     install_requires=['hyperopt>=0.2', 'tensorflow>=2.2', 'scikit-learn>=0.22',
                       'pandas>=1', 'numpy>=1', 'statsmodels>=0.11',
-                      'matplotlib>=3', 'scipy>=1.4'],
-    packages=find_packages(include=['epftoolbox', 'epftoolbox.*']),
+                      'matplotlib>=3', 'scipy>=1.4', 'google-cloud-bigquery>=3.11.0'],
+    packages=find_packages(include=['toolbox', 'toolbox.*']),
     classifiers=[
     'Development Status :: 3 - Alpha',
 
