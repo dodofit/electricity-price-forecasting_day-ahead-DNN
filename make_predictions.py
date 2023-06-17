@@ -8,7 +8,7 @@ Example for using the DNN model for forecasting prices with daily recalibration
 import sys
 import os
 
-module_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
+module_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '.', 'toolbox'))
 sys.path.append(module_dir)
 
 from data import read_data
@@ -17,6 +17,7 @@ from evaluation import MAE, sMAPE
 import argparse
 import pandas as pd 
 import numpy as np 
+from google.cloud import bigquery
 
 
 
@@ -81,10 +82,14 @@ path_datasets_folder = os.path.join('.', 'datasets')
 path_forecast_folder = os.path.join('.', 'forecast')
 path_hyperparameter_folder = os.path.join('.', 'hyperparameters')
 
+# Pulling data from bigquery and saving it in a csv file
+
+#client = bigquery.Client(project='643838572067')
+
+
 # Defining train and testing data
 df_train, df_test = read_data(dataset=dataset, years_test=years_test, path=path_datasets_folder,
                               begin_test_date=begin_test_date, end_test_date=end_test_date)
-print(df_test.index[0], df_test.index[-1])
 
 # Defining unique name to save the forecast
 forecast_file_name = 'fc_nl' + str(nlayers) + '_dat' + str(dataset) + \
@@ -96,7 +101,7 @@ forecast_file_path = os.path.join(path_forecast_folder, forecast_file_name)
 
 # Defining empty forecast array and the real values to be predicted in a more friendly format
 forecast = pd.DataFrame(index=df_test.index[::24], columns=['h' + str(k) for k in range(24)])
-real_values = df_test.iloc[:-23, 0].values.reshape(-1, 24)
+real_values = df_test.iloc[:-24, 0].values.reshape(-1, 24)
 real_values = pd.DataFrame(real_values, index=forecast.index[:-1], columns=forecast.columns)
 
 # If we are not starting a new recalibration but re-starting an old one, we import the
@@ -143,12 +148,14 @@ for date in forecast_dates:
     # Saving the current prediction
     forecast.loc[date, :] = Yp
 
+    print(forecast.transpose())
+
     # Computing metrics up-to-current-date
-    mae = np.mean(MAE(forecast.loc[:date].values.squeeze(), real_values.loc[:date].values)) 
-    smape = np.mean(sMAPE(forecast.loc[:date].values.squeeze(), real_values.loc[:date].values)) * 100
+    #mae = np.mean(MAE(forecast.loc[:date].values.squeeze(), real_values.loc[:date].values)) 
+    #smape = np.mean(sMAPE(forecast.loc[:date].values.squeeze(), real_values.loc[:date].values)) * 100
 
     # Pringint information
-    print('{} - sMAPE: {:.2f}%  |  MAE: {:.3f}'.format(str(date)[:10], smape, mae))
+    #print('{} - sMAPE: {:.2f}%  |  MAE: {:.3f}'.format(str(date)[:10], smape, mae))
 
     # Saving forecast
     forecast.to_csv(forecast_file_path)

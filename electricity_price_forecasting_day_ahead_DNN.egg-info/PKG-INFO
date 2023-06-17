@@ -1,0 +1,17 @@
+Metadata-Version: 2.1
+Name: electricity-price-forecasting-day-ahead-DNN
+Version: 1.0
+Summary: An open-access benchmark and toolbox for electricity price forecasting
+Home-page: https://github.com/dodofit/electricity-price-forecasting_day-ahead-DNN
+Author: Dorian Fitton
+Author-email: fittondorian@gmail.com
+License: GNU AGPLv3
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Science/Research
+Classifier: Topic :: Topic :: Scientific/Engineering
+Classifier: License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)
+Classifier: Programming Language :: Python :: 3
+Requires-Python: >=3.6, <4
+Description-Content-Type: text/markdown
+
+# electricity-price-forecasting_day-ahead-DNN
