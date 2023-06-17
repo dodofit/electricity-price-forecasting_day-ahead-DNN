@@ -11,7 +11,7 @@ import os
 module_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '.', 'toolbox'))
 sys.path.append(module_dir)
 
-from data import read_data
+from data import read_data, pull_data_from_bigquery
 from models import DNN
 from evaluation import MAE, sMAPE
 import argparse
@@ -83,107 +83,91 @@ path_forecast_folder = os.path.join('.', 'forecast')
 path_hyperparameter_folder = os.path.join('.', 'hyperparameters')
 
 # Pulling data from bigquery and saving it in a csv file
+def make_predictions():
 
-client = bigquery.Client(project='643838572067')
+    # Pulling data from bigquery and saving it in a csv file
+    client = bigquery.Client(project='643838572067')
+    last_date = pull_data_from_bigquery(client, calibration_window, path_datasets_folder)
 
-dataset_id = f"{client.project}.epf"
+    begin_test_date = last_date + pd.Timedelta(hours=1)
+    end_test_date = begin_test_date + pd.Timedelta(hours=23)
 
-table_id = 'load_generation forecast'
+    # Defining train and testing data
+    df_train, df_test = read_data(dataset=dataset, years_test=years_test, path=path_datasets_folder,
+                                begin_test_date=begin_test_date, end_test_date=end_test_date)
 
-dataset = client.get_dataset(dataset_id)
+    # Defining unique name to save the forecast
+    forecast_file_name = 'fc_nl' + str(nlayers) + '_dat' + str(dataset) + \
+                    '_YT' + str(years_test) + '_SF' + str(shuffle_train) + \
+                    '_DA' * data_augmentation + '_CW' + str(calibration_window) + \
+                    '_' + str(experiment_id) + '.csv'
 
-past_data = 365 * (calibration_window) + 30 # Number of days in the past to be used for training, plus a margin of 30 days
+    forecast_file_path = os.path.join(path_forecast_folder, forecast_file_name)
 
-query = f"""
-    SELECT * from {dataset_id}.{table_id} ORDER BY date ASC LIMIT {str(past_data*24)}
-    """
+    # Defining empty forecast array and the real values to be predicted in a more friendly format
+    forecast = pd.DataFrame(index=df_test.index[::24], columns=['h' + str(k) for k in range(24)])
+    real_values = df_test.iloc[:-24, 0].values.reshape(-1, 24)
+    real_values = pd.DataFrame(real_values, index=forecast.index[:-1], columns=forecast.columns)
 
-df = client.query(query).to_dataframe()[['date', 'price',  'load_forecast', 'generation_forecast', 'solar_forecast','wind_forecast']]
-df = df[['date', 'price',  'load_forecast', 'generation_forecast', 'solar_forecast','wind_forecast']]
-df = df.set_index('date')
-df.index.name = None
-df.columns = ['Price','Load forecast','Generation forecast','Prévision J-1 Solaire','Prévision J-1 Eolien']
-df = df.sort_index()
-df.index = df.index + pd.Timedelta(hours=2) # Changing timezone to UTC+2 because the algorithm is design to take full days starting at 00:00
+    # If we are not starting a new recalibration but re-starting an old one, we import the
+    # existing files and print metrics 
+    if not new_recalibration:
+        # Import existinf forecasting file
+        forecast = pd.read_csv(forecast_file_path, index_col=0)
+        forecast.index = pd.to_datetime(forecast.index)
 
-df.to_csv(os.path.join(path_datasets_folder, 'FR_NEW_UTC_W_RENEW.csv'))
+        # Reading dates to still be forecasted by checking NaN values
+        forecast_dates = forecast[forecast.isna().any(axis=1)].index
 
-last_date = df.index[-1]
+        # If all the dates to be forecasted have already been forecast, we print information
+        # and exit the script
+        if len(forecast_dates) == 0:
 
-begin_test_date = last_date + pd.Timedelta(hours=1)
-end_test_date = begin_test_date + pd.Timedelta(hours=23)
-print(begin_test_date, end_test_date)
+            mae = np.mean(MAE(forecast.values.squeeze(), real_values.values))
+            smape = np.mean(sMAPE(forecast.values.squeeze(), real_values.values)) * 100
+            print('{} - sMAPE: {:.2f}%  |  MAE: {:.3f}'.format('Final metrics', smape, mae))
+        
+    else:
+        forecast_dates = forecast.index
 
-
-# Defining train and testing data
-df_train, df_test = read_data(dataset=dataset, years_test=years_test, path=path_datasets_folder,
-                              begin_test_date=begin_test_date, end_test_date=end_test_date)
-
-# Defining unique name to save the forecast
-forecast_file_name = 'fc_nl' + str(nlayers) + '_dat' + str(dataset) + \
-                   '_YT' + str(years_test) + '_SF' + str(shuffle_train) + \
-                   '_DA' * data_augmentation + '_CW' + str(calibration_window) + \
-                   '_' + str(experiment_id) + '.csv'
-
-forecast_file_path = os.path.join(path_forecast_folder, forecast_file_name)
-
-# Defining empty forecast array and the real values to be predicted in a more friendly format
-forecast = pd.DataFrame(index=df_test.index[::24], columns=['h' + str(k) for k in range(24)])
-real_values = df_test.iloc[:-24, 0].values.reshape(-1, 24)
-real_values = pd.DataFrame(real_values, index=forecast.index[:-1], columns=forecast.columns)
-
-# If we are not starting a new recalibration but re-starting an old one, we import the
-# existing files and print metrics 
-if not new_recalibration:
-    # Import existinf forecasting file
-    forecast = pd.read_csv(forecast_file_path, index_col=0)
-    forecast.index = pd.to_datetime(forecast.index)
-
-    # Reading dates to still be forecasted by checking NaN values
-    forecast_dates = forecast[forecast.isna().any(axis=1)].index
-
-    # If all the dates to be forecasted have already been forecast, we print information
-    # and exit the script
-    if len(forecast_dates) == 0:
-
-        mae = np.mean(MAE(forecast.values.squeeze(), real_values.values))
-        smape = np.mean(sMAPE(forecast.values.squeeze(), real_values.values)) * 100
-        print('{} - sMAPE: {:.2f}%  |  MAE: {:.3f}'.format('Final metrics', smape, mae))
-    
-else:
-    forecast_dates = forecast.index
-
-model = DNN(
-    experiment_id=experiment_id, path_hyperparameter_folder=path_hyperparameter_folder, nlayers=nlayers, 
-    dataset=dataset, years_test=years_test, shuffle_train=shuffle_train, data_augmentation=data_augmentation,
-    calibration_window=calibration_window)
+    model = DNN(
+        experiment_id=experiment_id, path_hyperparameter_folder=path_hyperparameter_folder, nlayers=nlayers, 
+        dataset=dataset, years_test=years_test, shuffle_train=shuffle_train, data_augmentation=data_augmentation,
+        calibration_window=calibration_window)
 
 
-# For loop over the recalibration dates
-for date in forecast_dates:
+    # For loop over the recalibration dates
+    for date in forecast_dates:
 
-    # For simulation purposes, we assume that the available data is
-    # the data up to current date where the prices of current date are not known
-    data_available = pd.concat([df_train, df_test.loc[:date + pd.Timedelta(hours=23), :]], axis=0)
+        # For simulation purposes, we assume that the available data is
+        # the data up to current date where the prices of current date are not known
+        data_available = pd.concat([df_train, df_test.loc[:date + pd.Timedelta(hours=23), :]], axis=0)
 
-    # We extract real prices for current date and set them to NaN in the dataframe of available data
-    data_available.loc[date:date + pd.Timedelta(hours=23), 'Price'] = np.NaN
+        # We extract real prices for current date and set them to NaN in the dataframe of available data
+        data_available.loc[date:date + pd.Timedelta(hours=23), 'Price'] = np.NaN
 
-    # Recalibrating the model with the most up-to-date available data and making a prediction
-    # for the next day
-    Yp = model.recalibrate_and_forecast_next_day(df=data_available, next_day_date=date)
+        # Recalibrating the model with the most up-to-date available data and making a prediction
+        # for the next day
+        Yp = model.recalibrate_and_forecast_next_day(df=data_available, next_day_date=date)
 
-    # Saving the current prediction
-    forecast.loc[date, :] = Yp
+        # Saving the current prediction
+        forecast.loc[date, :] = Yp
 
-    print(forecast.transpose())
+        print(forecast.transpose())
 
-    # Computing metrics up-to-current-date
-    #mae = np.mean(MAE(forecast.loc[:date].values.squeeze(), real_values.loc[:date].values)) 
-    #smape = np.mean(sMAPE(forecast.loc[:date].values.squeeze(), real_values.loc[:date].values)) * 100
+        # Computing metrics up-to-current-date
+        #mae = np.mean(MAE(forecast.loc[:date].values.squeeze(), real_values.loc[:date].values)) 
+        #smape = np.mean(sMAPE(forecast.loc[:date].values.squeeze(), real_values.loc[:date].values)) * 100
 
-    # Pringint information
-    #print('{} - sMAPE: {:.2f}%  |  MAE: {:.3f}'.format(str(date)[:10], smape, mae))
+        # Pringint information
+        #print('{} - sMAPE: {:.2f}%  |  MAE: {:.3f}'.format(str(date)[:10], smape, mae))
 
-    # Saving forecast
-    forecast.to_csv(forecast_file_path)
+        # Saving forecast
+        forecast.to_csv(forecast_file_path)
+
+
+
+
+
+
+
