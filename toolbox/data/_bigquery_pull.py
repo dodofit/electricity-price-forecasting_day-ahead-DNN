@@ -5,17 +5,18 @@ from google.cloud import bigquery
 
 def pull_data_from_bigquery(client, calibration_window, path_datasets_folder):
     
+    #client = bigquery.Client(project='643838572067')
 
     dataset_id = f"{client.project}.epf"
 
-    table_id = 'load_generation forecast'
+    table_id = 'load_generation_forecast'
 
     dataset = client.get_dataset(dataset_id)
 
     past_data = 365 * (calibration_window) + 30 # Number of days in the past to be used for training, plus a margin of 30 days
 
     query = f"""
-        SELECT * from {dataset_id}.{table_id} ORDER BY date ASC LIMIT {str(past_data*24)}
+        SELECT * FROM `{dataset_id}.{table_id}` ORDER BY date DESC LIMIT {str(past_data*24)}
         """
 
     df = client.query(query).to_dataframe()[['date', 'price',  'load_forecast', 'generation_forecast', 'solar_forecast','wind_forecast']]

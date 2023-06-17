@@ -12,7 +12,7 @@ module_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '.', 'toolb
 sys.path.append(module_dir)
 
 from data import read_data, pull_data_from_bigquery
-from models import DNN
+#from models import DNN
 from evaluation import MAE, sMAPE
 import argparse
 import pandas as pd 
@@ -91,6 +91,8 @@ def make_predictions():
 
     begin_test_date = last_date + pd.Timedelta(hours=1)
     end_test_date = begin_test_date + pd.Timedelta(hours=23)
+    print('begin_test_date: ', begin_test_date)
+    print('end_test_date: ', end_test_date)
 
     # Defining train and testing data
     df_train, df_test = read_data(dataset=dataset, years_test=years_test, path=path_datasets_folder,
@@ -166,7 +168,7 @@ def make_predictions():
         forecast.to_csv(forecast_file_path)
 
 
-
+make_predictions()
 
 
 
