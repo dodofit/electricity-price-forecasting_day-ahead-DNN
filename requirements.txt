@@ -35,7 +35,7 @@ einops==0.6.1
 
 entsoe-py==0.5.9
 
-
+db-dtypes==1.1.1
 filelock==3.12.0
 flatbuffers==23.1.21
 fonttools==4.38.0
