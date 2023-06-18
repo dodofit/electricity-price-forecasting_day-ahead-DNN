@@ -7,7 +7,10 @@ for electricity price forecasting
 
 # License: AGPL-3.0 License
 
+import os, sys
+
 module_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'toolbox'))
+sys.path.append(module_dir)
 
 import pandas as pd
 import numpy as np
@@ -20,7 +23,7 @@ from data import scaling
 from data import read_data
 from evaluation import MAE, sMAPE
 from functools import partial
-import os
+
 
 def _build_space(nlayer, data_augmentation, n_exogenous_inputs):
     """Function that generates the hyperparameter/feature search space 
