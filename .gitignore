@@ -1,1 +1,4 @@
-electricity-price-forecasting-*.json
+
+prod/
+build/
+dockerfile
