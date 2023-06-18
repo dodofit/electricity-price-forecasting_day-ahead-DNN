@@ -8,7 +8,7 @@ cloudpickle==2.2.1
 contourpy==1.1.0
 cycler==0.11.0
 db-dtypes==1.1.1
-electricity-price-forecasting-day-ahead-DNN==1.0
+-e git+https://github.com/dodofit/electricity-price-forecasting_day-ahead-DNN.git@6c2574be430dbd847ecfc4f5e3d0cf5b5f7b458d#egg=electricity_price_forecasting_day_ahead_DNN
 entsoe-py==0.5.9
 flatbuffers==23.5.26
 fonttools==4.40.0
