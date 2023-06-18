@@ -17,7 +17,7 @@ import os
 import sys
 import os
 
-module_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'epftoolbox'))
+module_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'toolbox'))
 sys.path.append(module_dir)
 
 import tensorflow.keras as kr

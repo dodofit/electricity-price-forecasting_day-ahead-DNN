@@ -8,11 +8,11 @@ Example for using the DNN model for forecasting prices with daily recalibration
 import sys
 import os
 
-module_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '.', 'toolbox'))
+module_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),'toolbox'))
 sys.path.append(module_dir)
 
 from data import read_data, pull_data_from_bigquery
-#from models import DNN
+from models import DNN
 from evaluation import MAE, sMAPE
 import argparse
 import pandas as pd 
